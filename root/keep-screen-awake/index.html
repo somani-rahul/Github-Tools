@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keep Screen Awake</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #1e293b, #0f172a, #020617);
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+    }
+
+    .header a {
+      color: #7c3aed;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .description {
+      color: #cbd5e1;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .status {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .active-state {
+      font-size: 2.8rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .current-state {
+      text-align: center;
+      margin-bottom: 26px;
+      color: #cbd5e1;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .button,
+    .action {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 24px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: white;
+      min-width: 160px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .screen-meme {
+      display: flex;
+      justify-content: center;
+      font-size: 3rem;
+      margin-bottom: 18px;
+      line-height: 1.1;
+    }
+
+    .button:hover,
+    .action:hover {
+      transform: translateY(-2px);
+    }
+
+    .toggle {
+      background: #7c3aed;
+    }
+
+    .reset {
+      background: #ef4444;
+    }
+
+    .note {
+      color: #94a3b8;
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 22px;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>Keep Screen Awake</h1>
+      <a href="../">← Back to tools</a>
+    </div>
+    <p class="description">Toggle the screen awake lock to keep the display from sleeping. It remains active until you toggle it off or close the page.</p>
+
+    <div class="status">Wake lock status</div>
+    <div class="active-state" id="screenState">Disabled</div>
+    <div class="screen-meme" id="screenMeme">😴</div>
+    <div class="current-state" id="screenMessage">Tap the button to keep the screen awake.</div>
+
+    <div class="buttons">
+      <button class="button toggle" id="wakeToggle" onclick="toggleScreenKeep()">Enable screen awake</button>
+    </div>
+
+    <div class="note">Supported in browsers with the Screen Wake Lock API. The lock will release if the browser tab closes or if the browser itself stops the lock.</div>
+  </div>
+
+  <script>
+    const screenState = document.getElementById('screenState');
+    const screenMeme = document.getElementById('screenMeme');
+    const screenMessage = document.getElementById('screenMessage');
+    const wakeToggle = document.getElementById('wakeToggle');
+
+    let wakeLock = null;
+    let enabled = false;
+
+    function updateScreenUI() {
+      screenState.textContent = enabled ? 'Enabled' : 'Disabled';
+      screenState.style.color = enabled ? '#22c55e' : '#f8fafc';
+      screenMessage.textContent = enabled ? 'Screen awake lock is active. No nap time!' : 'Screen can sleep normally. Zzz...';
+      screenMeme.textContent = enabled ? '😎💡✨ Wake lock hero!' : '😴🛌💤 Sleeping beauty mode';
+      wakeToggle.textContent = enabled ? 'Disable screen awake' : 'Enable screen awake';
+    }
+
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) {
+        screenMessage.textContent = 'Wake lock not supported in this browser.';
+        return;
+      }
+
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        enabled = true;
+        wakeLock.addEventListener('release', () => {
+          enabled = false;
+          updateScreenUI();
+        });
+      } catch (error) {
+        enabled = false;
+        screenMessage.textContent = 'Failed to enable the screen lock.';
+      }
+      updateScreenUI();
+    }
+
+    async function releaseScreenKeep() {
+      if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+      enabled = false;
+      updateScreenUI();
+    }
+
+    async function toggleScreenKeep() {
+      if (enabled) {
+        await releaseScreenKeep();
+      } else {
+        await requestWakeLock();
+      }
+    }
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && enabled) {
+        await requestWakeLock();
+      }
+    });
+
+    window.addEventListener('beforeunload', async () => {
+      if (wakeLock) {
+        await wakeLock.release();
+      }
+    });
+
+    updateScreenUI();
+  </script>
+</body>
+</html>

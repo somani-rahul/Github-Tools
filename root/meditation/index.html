@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meditation Timer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1e293b, #0f172a 60%);
+      color: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .topbar a {
+      color: #7c3aed;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      font-size: 2.2rem;
+    }
+
+    p {
+      color: #cbd5e1;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(140px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    select {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.95);
+      color: white;
+      padding: 12px 14px;
+      font-size: 1rem;
+    }
+
+    .step {
+      font-size: 1.15rem;
+      margin-bottom: 24px;
+      min-height: 44px;
+      color: #cbd5e1;
+    }
+
+    .timer {
+      font-size: 5rem;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .status {
+      text-align: center;
+      opacity: 0.85;
+      margin-bottom: 24px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 14px 22px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+      min-width: 140px;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .start,
+    .pause-toggle {
+      background: #22c55e;
+      color: white;
+    }
+
+    .reset {
+      background: #ef4444;
+      color: white;
+    }
+
+    .fullscreen {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .keep-screen {
+      background: #7c3aed;
+      color: white;
+      padding: 14px 18px;
+      font-size: 0.95rem;
+      min-width: 160px;
+    }
+
+    .keep-screen-status {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-left: 14px;
+      align-self: center;
+    }
+
+    .state {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #94a3b8;
+    }
+
+    .state.running { color: #22c55e; }
+    .state.paused { color: #fbbf24; }
+    .state.complete { color: #60a5fa; }
+    .state.ready { color: #94a3b8; }
+
+    .note {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 760px) {
+      .container {
+        padding: 24px 20px;
+      }
+
+      .settings {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      .controls button,
+      .screen-lock {
+        width: 100%;
+      }
+
+      .controls button {
+        width: 100%;
+      }
+
+      .keep-screen-status {
+        display: block;
+        margin: 12px 0 0;
+      }
+
+      .timer {
+        font-size: 3.5rem;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 16px;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 1.85rem;
+      }
+
+      .step {
+        font-size: 1rem;
+      }
+
+      .timer {
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <a href="../">← Back to tools</a>
+      <span class="note">A calm timer with soft bells to support your meditation flow.</span>
+    </div>
+
+    <h1>Meditation Timer</h1>
+    <p>Choose your session length and start. A soft bell will guide the beginning and end of the focus period.</p>
+
+    <div class="settings">
+      <label>
+        <strong>Session length</strong>
+        <select id="sessionLength">
+          <option value="120">2 minutes</option>
+          <option value="180">3 minutes</option>
+          <option value="300">5 minutes</option>
+          <option value="600" selected>10 minutes</option>
+          <option value="900">15 minutes</option>
+          <option value="1200">20 minutes</option>
+          <option value="1800">30 minutes</option>
+        </select>
+      </label>
+      <label>
+        <strong>Bell style</strong>
+        <select id="bellStyle">
+          <option value="soft">Soft bell</option>
+          <option value="warm">Warm bell</option>
+          <option value="bright">Bright bell</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="step" id="stepLabel">Ready when you are.</div>
+    <div class="timer" id="timer">10:00</div>
+    <div class="status" id="status">Session length: 10 minutes</div>
+    <div class="state" id="stateLabel">Ready</div>
+
+    <div class="controls">
+      <button class="pause-toggle" id="toggleTimerBtn" onclick="toggleTimer()">Start</button>
+      <button class="reset" onclick="resetTimer()">Reset</button>
+      <button class="fullscreen" onclick="toggleFullscreen()">Fullscreen</button>
+      <button class="keep-screen" id="keepScreenBtn" onclick="toggleScreenLock()">Keep screen on</button>
+      <span class="keep-screen-status" id="keepScreenStatus">Screen stay on: disabled</span>
+    </div>
+  </div>
+
+  <script>
+    const sessionSelect = document.getElementById('sessionLength');
+    const bellStyleSelect = document.getElementById('bellStyle');
+    const timerEl = document.getElementById('timer');
+    const statusEl = document.getElementById('status');
+    const stepLabel = document.getElementById('stepLabel');
+    const stateEl = document.getElementById('stateLabel');
+    const toggleTimerBtn = document.getElementById('toggleTimerBtn');
+    const keepScreenBtn = document.getElementById('keepScreenBtn');
+    const keepScreenStatus = document.getElementById('keepScreenStatus');
+
+    let sessionSeconds = Number(sessionSelect.value);
+    let timeLeft = sessionSeconds;
+    let timer = null;
+    let running = false;
+    let isPaused = false;
+    let keepScreen = false;
+    let wakeLock = null;
+
+    function formatTime(seconds) {
+      const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const secs = String(seconds % 60).padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    function updateDisplay() {
+      timerEl.textContent = formatTime(timeLeft);
+
+      if (running) {
+        statusEl.textContent = 'Meditating…';
+      } else if (isPaused) {
+        statusEl.textContent = 'Paused';
+      } else if (timeLeft === 0) {
+        statusEl.textContent = 'Session complete.';
+      } else {
+        statusEl.textContent = `Session length: ${Math.floor(sessionSeconds / 60)} minutes`;
+      }
+
+      stepLabel.textContent = running
+        ? 'Breathe gently and stay present.'
+        : isPaused
+          ? 'Paused. Resume when ready.'
+          : timeLeft === 0
+            ? 'Tap reset to begin again.'
+            : 'Ready when you are.';
+
+      const stateText = running ? 'Running' : isPaused ? 'Paused' : timeLeft === 0 ? 'Complete' : 'Ready';
+      stateEl.textContent = stateText;
+      stateEl.className = `state ${stateText.toLowerCase()}`;
+
+      keepScreenStatus.textContent = keepScreen ? 'Screen stay on: enabled' : 'Screen stay on: disabled';
+      keepScreenBtn.textContent = keepScreen ? 'Release screen lock' : 'Keep screen on';
+      toggleTimerBtn.textContent = running ? 'Pause' : timeLeft === 0 ? 'Start' : isPaused ? 'Resume' : 'Start';
+    }
+
+    function playBell() {
+      const style = bellStyleSelect.value;
+      let freq = 420;
+      if (style === 'warm') freq = 320;
+      if (style === 'bright') freq = 560;
+      const duration = 400;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.value = 0.0025;
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration / 1000);
+      setTimeout(() => {
+        osc.stop();
+        ctx.close();
+      }, duration);
+    }
+
+    function startTimer() {
+      if (running) return;
+      running = true;
+      isPaused = false;
+      updateDisplay();
+
+      if (!timer) {
+        timer = setInterval(() => {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            playBell();
+            clearInterval(timer);
+            timer = null;
+            running = false;
+            isPaused = false;
+            stepLabel.textContent = 'Session complete.';
+            statusEl.textContent = 'Well done.';
+          }
+          updateDisplay();
+        }, 1000);
+      }
+    }
+    function toggleTimer() {
+      if (running) {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+        running = false;
+        isPaused = true;
+      } else {
+        if (timeLeft <= 0) {
+          sessionSeconds = Number(sessionSelect.value);
+          timeLeft = sessionSeconds;
+        }
+        startTimer();
+      }
+      updateDisplay();
+    }
+
+    function resetTimer() {
+      if (timer) clearInterval(timer);
+      running = false;
+      isPaused = false;
+      sessionSeconds = Number(sessionSelect.value);
+      timeLeft = sessionSeconds;
+      updateDisplay();
+    }
+
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) {
+        keepScreenStatus.textContent = 'Screen lock unsupported in this browser.';
+        keepScreen = false;
+        keepScreenBtn.textContent = 'Keep screen on';
+        return;
+      }
+
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        keepScreen = true;
+        keepScreenBtn.textContent = 'Release screen lock';
+        keepScreenStatus.textContent = 'Screen stay on: enabled';
+        wakeLock.addEventListener('release', () => {
+          keepScreen = false;
+          keepScreenBtn.textContent = 'Keep screen on';
+          keepScreenStatus.textContent = 'Screen stay on: disabled';
+          updateDisplay();
+        });
+      } catch (error) {
+        keepScreen = false;
+        keepScreenStatus.textContent = 'Screen lock unavailable.';
+        keepScreenBtn.textContent = 'Keep screen on';
+      }
+    }
+
+    async function releaseWakeLock() {
+      if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+      keepScreen = false;
+      keepScreenBtn.textContent = 'Keep screen on';
+      keepScreenStatus.textContent = 'Screen stay on: disabled';
+    }
+
+    async function toggleScreenLock() {
+      if (keepScreen) {
+        await releaseWakeLock();
+      } else {
+        await requestWakeLock();
+      }
+      updateDisplay();
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+
+    sessionSelect.addEventListener('change', () => {
+      if (!running) {
+        sessionSeconds = Number(sessionSelect.value);
+        timeLeft = sessionSeconds;
+        updateDisplay();
+      }
+    });
+
+    bellStyleSelect.addEventListener('change', updateDisplay);
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && keepScreen) {
+        await requestWakeLock();
+      }
+    });
+
+    window.addEventListener('beforeunload', async () => {
+      if (wakeLock) {
+        await releaseWakeLock();
+      }
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>
