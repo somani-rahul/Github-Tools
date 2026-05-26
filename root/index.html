@@ -18,104 +18,81 @@
   <link rel="apple-touch-icon" href="icon-192.svg" />
 
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: Arial, sans-serif;
       background: linear-gradient(to bottom right, #111827, #0f172a);
       color: white;
       min-height: 100vh;
-      padding: 24px;
+      padding: 20px;
     }
 
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1000px; margin: 0 auto; }
 
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
-      padding-top: 10px;
-    }
+    .header { text-align: center; margin-bottom: 18px; padding-top: 6px; }
+    .header h1 { font-size: 1.6rem; margin-bottom: 6px; }
+    .header p { color: #cbd5e1; font-size: 0.85rem; }
 
-    .header h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-    }
-
-    .header p {
-      color: #cbd5e1;
-      font-size: 1rem;
-    }
-
+    /* App grid (mobile home-screen style) */
     .tools-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+      gap: 12px;
+      align-items: start;
+      justify-items: center;
+      padding: 6px 4px;
     }
 
-    .tool-card {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      padding: 24px;
+    .app-tile {
+      width: 72px;
+      height: 96px;
       text-decoration: none;
       color: white;
-      transition: all 0.25s ease;
-      backdrop-filter: blur(10px);
-      min-height: 180px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: flex-start;
+      border-radius: 12px;
+      transition: transform 160ms ease, background 160ms ease;
+      padding-top: 6px;
     }
 
-    .tool-card:hover {
-      transform: translateY(-5px);
-      background: rgba(255, 255, 255, 0.1);
+    .app-tile:active, .app-tile:focus, .app-tile:hover { transform: translateY(-4px); }
+
+    .app-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      backdrop-filter: blur(6px);
     }
 
-    .tool-icon {
-      font-size: 2rem;
-      margin-bottom: 12px;
-    }
-
-    .tool-title {
-      font-size: 1.3rem;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-
-    .tool-description {
-      color: #cbd5e1;
-      line-height: 1.5;
-      font-size: 0.95rem;
-    }
-
-    .footer {
-      margin-top: 50px;
+    .app-label {
+      font-size: 12px;
       text-align: center;
-      color: #94a3b8;
-      font-size: 0.9rem;
+      color: #e6eef8;
+      line-height: 1.1;
+      max-width: 72px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    @media (max-width: 600px) {
-      body {
-        padding: 16px;
-      }
+    .footer { margin-top: 22px; text-align: center; color: #94a3b8; font-size: 0.8rem; }
 
-      .header h1 {
-        font-size: 2rem;
-      }
-
-      .tool-card {
-        min-height: 160px;
-        padding: 20px;
-      }
+    @media (min-width: 700px) {
+      .tools-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 18px; }
+      .app-tile { width: 100px; height: 120px; }
+      .app-icon { width: 72px; height: 72px; font-size: 36px; }
+      .app-label { font-size: 13px; }
+      .header h1 { font-size: 2rem; }
     }
   </style>
 </head>
@@ -125,66 +102,41 @@
 
     <div class="header">
       <h1>My Tools</h1>
-      <p>Version 1.0.0</p>
+      <p>Version 1.0.1</p>
       <p>Simple tools for meditation, stretching, breathing, workouts, and screen awake control.</p>
     </div>
 
     <div class="tools-grid">
 
-      <a href="meditation/" class="tool-card">
-        <div>
-          <div class="tool-icon">🧘</div>
-          <div class="tool-title">Meditation Timer</div>
-          <div class="tool-description">
-            Focus timer with calming intervals and fullscreen mode.
-          </div>
-        </div>
+      <a href="meditation/" class="app-tile" aria-label="Meditation Timer">
+        <div class="app-icon">🧘</div>
+        <div class="app-label">Meditation</div>
       </a>
 
-      <a href="stretching/" class="tool-card">
-        <div>
-          <div class="tool-icon">🤸</div>
-          <div class="tool-title">Stretching Tool</div>
-          <div class="tool-description">
-            Guided stretch routines with automatic timers.
-          </div>
-        </div>
+      <a href="stretching/" class="app-tile" aria-label="Stretching Tool">
+        <div class="app-icon">🤸</div>
+        <div class="app-label">Stretching</div>
       </a>
 
-      <a href="breathing/" class="tool-card">
-        <div>
-          <div class="tool-icon">🌬️</div>
-          <div class="tool-title">Breathing Trainer</div>
-          <div class="tool-description">
-            Box breathing and guided breathing exercises.
-          </div>
-        </div>
+      <a href="breathing/" class="app-tile" aria-label="Breathing Trainer">
+        <div class="app-icon">🌬️</div>
+        <div class="app-label">Breathing</div>
       </a>
 
-      <a href="keep-screen-awake/" class="tool-card">
-        <div>
-          <div class="tool-icon">🔆</div>
-          <div class="tool-title">Screen Awake</div>
-          <div class="tool-description">
-            Keep your screen awake until you toggle off or close the site.
-          </div>
-        </div>
+      <a href="keep-screen-awake/" class="app-tile" aria-label="Screen Awake">
+        <div class="app-icon">🔆</div>
+        <div class="app-label">Screen Awake</div>
       </a>
 
-      <a href="exercise/" class="tool-card">
-        <div>
-          <div class="tool-icon">💪</div>
-          <div class="tool-title">Exercise Timer</div>
-          <div class="tool-description">
-            Workout intervals, rest periods, and exercise tracking.
-          </div>
-        </div>
+      <a href="exercise/" class="app-tile" aria-label="Exercise Timer">
+        <div class="app-icon">💪</div>
+        <div class="app-label">Exercise</div>
       </a>
 
     </div>
 
     <div class="footer">
-      Built with HTML, CSS, and JavaScript.
+      Built by Rahul Somani.
     </div>
 
   </div>

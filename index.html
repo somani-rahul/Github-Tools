@@ -5,6 +5,10 @@
   <meta http-equiv="refresh" content="0;url=./root/index.html">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Redirecting…</title>
+  <!-- Expose PWA manifest when visiting project root so Add-to-Home works correctly -->
+  <link rel="manifest" href="./root/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="apple-touch-icon" href="./root/icon-192.svg">
   <script>location.replace('./root/index.html');</script>
 </head>
 <body>
