@@ -2,11 +2,11 @@
   "name": "My Tools",
   "short_name": "Tools",
   "description": "Simple tools for meditation, stretching, breathing, workouts, and screen awake control",
-  "start_url": "/",
+  "start_url": "/Github-Tools/root/index.html",
   "display": "standalone",
   "background_color": "#111827",
   "theme_color": "#0f172a",
-  "scope": "/",
+  "scope": "/Github-Tools/",
   "icons": [
     {
       "src": "icon-192.svg",
