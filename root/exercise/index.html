@@ -108,22 +108,18 @@
 
 <div class="container">
   
-  <!-- App Header Back Link -->
   <div class="app-header">
     <a href="../">← Back to tools</a>
     <h1>Workout Progression</h1>
   </div>
 
-  <!-- Navigation Tabs -->
   <div class="tab-nav">
     <button class="tab-btn active" id="tabSetupBtn" onclick="switchTab('setup')">⚙️ Setup JSON</button>
     <button class="tab-btn" id="tabWorkoutBtn" onclick="switchTab('workout')">🏋️ Active Workout</button>
   </div>
 
-  <!-- VIEW 1: JSON SETUP -->
   <div id="setupView" class="view-section active">
     
-    <!-- JSON Input Panel -->
     <div class="panel">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h2 style="margin:0;">Workout Data</h2>
@@ -134,7 +130,6 @@
       <div id="jsonError" class="error-msg">Invalid JSON format. Please check for missing commas or quotes.</div>
     </div>
 
-    <!-- Generated Report Panel -->
     <div class="panel" id="reportPanel" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
         <div>
@@ -148,7 +143,6 @@
 
   </div>
 
-  <!-- VIEW 2: ACTIVE WORKOUT -->
   <div id="workoutView" class="view-section">
     
     <div class="panel timer-display" id="timerPanel">
@@ -224,67 +218,6 @@
       document.getElementById('tabWorkoutBtn').classList.add('active');
     }
   }
-
-  // --- Default JSON Data ---
-  const defaultJson = {
-    "date": "2026-06-01",
-    "name": "Planche + Upper (Progressive)",
-    "target_duration_min": 75,
-    "timer_rules": {
-      "prepare_sec": 10,
-      "rest_sec_excludes_prepare": true
-    },
-    "sections": [
-      {
-        "name": "Warm-up",
-        "items": [
-          { "exercise": "Treadmill Walk", "sets": 1, "duration_sec": 300, "rest_sec": 0, "prepare_sec": 0 },
-          { "exercise": "Wrist Circles", "sets": 1, "duration_sec": 60, "rest_sec": 15, "prepare_sec": 0 },
-          { "exercise": "Shoulder Rotations", "sets": 1, "duration_sec": 60, "rest_sec": 15, "prepare_sec": 0 },
-          { "exercise": "Scapula Push-Ups", "sets": 2, "reps": 15, "rest_sec": 30, "prepare_sec": 0 },
-          { "exercise": "Arm Swings", "sets": 1, "duration_sec": 30, "rest_sec": 15, "prepare_sec": 0 }
-        ]
-      },
-      {
-        "name": "Planche Foundation",
-        "items": [
-          { "exercise": "Planche Leans", "sets": 4, "hold_sec": 28, "rest_sec": 65, "prepare_sec": 10 },
-          { "exercise": "Frog Stand", "sets": 4, "hold_sec": 20, "rest_sec": 50, "prepare_sec": 10 }
-        ]
-      },
-      {
-        "name": "Pull",
-        "items": [
-          { "exercise": "Lat Pulldown", "sets": 4, "reps": 10, "rest_sec": 80, "prepare_sec": 10 },
-          { "exercise": "One-Arm Dumbbell Row", "sets": 4, "reps": 10, "per_side": true, "rest_sec": 65, "prepare_sec": 10 },
-          { "exercise": "Rear Delt Dumbbell Raises", "sets": 3, "reps": 15, "rest_sec": 50, "prepare_sec": 10 }
-        ]
-      },
-      {
-        "name": "Push",
-        "items": [
-          { "exercise": "Dumbbell Shoulder Press", "sets": 3, "reps": 10, "rest_sec": 80, "prepare_sec": 10 },
-          { "exercise": "Push-Ups", "sets": 3, "reps": 12, "rest_sec": 50, "prepare_sec": 10 },
-          { "exercise": "Incline Dumbbell Press", "optional": true, "sets": 3, "reps": 10, "rest_sec": 65, "prepare_sec": 10 }
-        ]
-      },
-      {
-        "name": "Core",
-        "items": [
-          { "exercise": "Hanging Leg Raises", "sets": 3, "reps": 10, "rest_sec": 50, "prepare_sec": 10 },
-          { "exercise": "Hollow Hold", "sets": 3, "hold_sec": 35, "rest_sec": 35, "prepare_sec": 10 }
-        ]
-      },
-      {
-        "name": "Cardio",
-        "items": [
-          { "exercise": "Incline Walk", "sets": 1, "duration_sec": 900, "incline": "5-6", "speed": "6+ progressive", "rest_sec": 0, "prepare_sec": 0 }
-        ]
-      }
-    ]
-  };
-  document.getElementById('jsonInput').value = JSON.stringify(defaultJson, null, 2);
-
 
   // --- Audio Engine ---
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
