@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stretching Planner Pro</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --accent: #38bdf8;
+      --text: #f1f5f9; --muted: #94a3b8; --border: rgba(255,255,255,0.1);
+      --prep: #facc15; --success: #22c55e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text); margin: 0; padding: 20px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+    
+    .panel { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+    
+    /* Category Rows */
+    .category-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .category-row:last-child { border-bottom: none; }
+    .cat-label { font-weight: 600; font-size: 0.95rem; }
+    .cat-chips { display: flex; gap: 8px; }
+    
+    .chip {
+      background: #334155; padding: 6px 14px; border-radius: 20px;
+      cursor: pointer; font-size: 0.8rem; font-weight: 600; user-select: none; transition: 0.2s;
+      border: 1px solid transparent; color: var(--muted);
+    }
+    .chip:hover { background: #475569; }
+    .chip.active { background: var(--accent); color: #0f172a; border-color: white; }
+
+    /* Stats Dashboard */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; text-align: center; }
+    .stat-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; border: 1px solid var(--border); }
+    .stat-label { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; display: block; }
+    .stat-value { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* Timer Styles */
+    .timer-display { text-align: center; position: sticky; top: 20px; }
+    .current-name { font-size: 1.3rem; font-weight: 700; color: var(--text); display: block; }
+    .current-desc { font-size: 0.9rem; color: var(--muted); margin: 8px auto 10px; min-height: 2.5em; max-width: 90%; line-height: 1.4; }
+    .current-time { font-size: 4.5rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); margin: 5px 0; }
+    .is-preparing .current-time { color: var(--prep); }
+    
+    .progress-container { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-bottom: 15px; }
+    #progressBar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s linear; }
+    .is-preparing #progressBar { background: var(--prep); }
+
+    /* Upcoming Highlight */
+    .upcoming-box {
+      background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent); padding: 12px; border-radius: 8px; margin-bottom: 20px;
+      font-size: 0.95rem; font-weight: 600; text-align: center;
+    }
+
+    .audio-settings { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 0.85rem; color: var(--muted); }
+    select { background: #0f172a; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    button { padding: 14px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; }
+    .btn-primary { background: var(--accent); color: #0f172a; grid-column: span 3; }
+    .btn-secondary { background: #475569; color: white; }
+    button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .queue-list { max-height: 500px; overflow-y: auto; padding-right: 5px; }
+    .queue-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; border-radius: 6px; }
+    .queue-item.active { background: rgba(56, 189, 248, 0.15); color: var(--accent); font-weight: 600; border-left: 3px solid var(--accent); }
+    .queue-item.done { opacity: 0.3; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+
+    @media (max-width: 850px) { .container { grid-template-columns: 1fr; } .timer-display { position: static; } }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <main>
+    <div class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+        <h2 style="margin:0;">Target Areas</h2>
+        <span class="muted" style="font-size: 0.8rem;">Mix & match modes</span>
+      </div>
+      <div id="sectionsList"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Workout Sequence</h3>
+      <div id="planned" class="queue-list"></div>
+    </div>
+  </main>
+
+  <aside>
+    <div class="panel timer-display" id="timerPanel">
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-label">Total</span>
+          <span class="stat-value" id="statTotal">00:00</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Elapsed</span>
+          <span class="stat-value" id="statElapsed">00:00</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Left</span>
+          <span class="stat-value" id="statRemaining">00:00</span>
+        </div>
+      </div>
+
+      <span class="current-name" id="currentName">Select areas to begin</span>
+      <div class="current-desc" id="currentDesc">Tap "Quick" for compound stretches or "Focused" for double-sets.</div>
+      
+      <div class="current-time" id="currentTime">00:00</div>
+      <div class="progress-container"><div id="progressBar"></div></div>
+
+      <div class="upcoming-box" id="upcomingBox">Up Next: --</div>
+
+      <div class="audio-settings">
+        <span>Sound Cues:</span>
+        <select id="soundOption">
+          <option value="digital">Digital Beep</option>
+          <option value="soft">Soft Sine</option>
+          <option value="wood">Percussive</option>
+          <option value="none">Mute</option>
+        </select>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="btn-primary">START SESSION</button>
+        <button id="pauseBtn" class="btn-secondary" disabled>Pause</button>
+        <button id="skipBtn" class="btn-secondary" disabled>Skip</button>
+        <button id="stopBtn" class="btn-secondary" disabled>Reset</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+  // --- Dual-Mode Database ---
+  const workoutData = [
+    {
+      id: 'warmup',
+      label: 'Full Body Warmup',
+      quick: [ ["Light cardio", 120, "Jog in place or do jumping jacks to warm up."] ],
+      focused: [ ["Light cardio", 180, "Jog in place or do jumping jacks to warm up."] ]
+    },
+    {
+      id: 'neck',
+      label: 'Neck',
+      quick: [
+        ["Neck rotations", 30, "Slowly look over your left shoulder, then rotate right."],
+        ["Levator scapula stretch", 30, "Look down towards your armpit, apply gentle pressure. Switch halfway."]
+      ],
+      focused: [
+        ["Neck flexion stretch", 20, "Keep your back straight and gently drop chin down toward chest."],
+        ["Neck flexion stretch", 20, "Keep your back straight and gently drop chin down toward chest."],
+        ["Neck extension stretch", 15, "Gently tilt your head back to look up at the ceiling."],
+        ["Neck extension stretch", 15, "Gently tilt your head back to look up at the ceiling."],
+        ["Lateral neck stretch - L", 20, "Gently tilt your left ear towards left shoulder."],
+        ["Lateral neck stretch - R", 20, "Gently tilt your right ear towards right shoulder."],
+        ["Lateral neck stretch - L", 20, "Gently tilt your left ear towards left shoulder."],
+        ["Lateral neck stretch - R", 20, "Gently tilt your right ear towards right shoulder."],
+        ["Levator scapula stretch - L", 20, "Look down towards left armpit."],
+        ["Levator scapula stretch - R", 20, "Look down towards right armpit."],
+        ["Levator scapula stretch - L", 20, "Look down towards left armpit."],
+        ["Levator scapula stretch - R", 20, "Look down towards right armpit."],
+        ["Neck rotations", 40, "Slowly look over left shoulder, then right."],
+        ["Chin tucks", 40, "Look straight ahead and pull head back without tilting."]
+      ]
+    },
+    {
+      id: 'upper',
+      label: 'Shoulders & Chest',
+      quick: [
+        ["Shoulder CARs", 40, "Make large, slow, controlled circles with your arms."],
+        ["Doorway chest stretch", 40, "Forearm on doorframe, lean forward. Switch sides halfway."],
+        ["Child's pose with reach", 40, "Kneel, sit back on heels, reach arms far forward."],
+        ["Standing side bend", 40, "Reach arm overhead and lean torso side. Switch halfway."]
+      ],
+      focused: [
+        ["Shoulder circles", 40, "Roll shoulders up, back, and down."],
+        ["Shoulder CARs", 40, "Make large, slow, controlled circles with arms."],
+        ["Rotator cuff stretch - L", 25, "Arm across chest, pull closer with right arm."],
+        ["Rotator cuff stretch - R", 25, "Arm across chest, pull closer with left arm."],
+        ["Doorway chest stretch - L", 30, "Forearm on doorframe, lean forward."],
+        ["Doorway chest stretch - R", 30, "Forearm on doorframe, lean forward."],
+        ["Overhead lat stretch - L", 30, "Reach left arm overhead, pull gently with right hand."],
+        ["Overhead lat stretch - R", 30, "Reach right arm overhead, pull gently with left hand."],
+        ["Standing side bend - L", 25, "Reach left arm overhead and lean right."],
+        ["Standing side bend - R", 25, "Reach right arm overhead and lean left."],
+        ["Child's pose with reach", 30, "Kneel, sit back, reach arms forward."],
+        ["Child's pose with reach", 30, "Kneel, sit back, reach arms forward."],
+        ["Scapula push-ups", 45, "Plank position, let chest sink, then push back up."]
+      ]
+    },
+    {
+      id: 'arms',
+      label: 'Arms & Wrists',
+      quick: [
+        ["Wrist circles", 30, "Roll wrists in smooth, continuous circles."],
+        ["Wrist lean stretch", 30, "On all fours, lean weight forward over palms."],
+        ["Prayer stretch", 30, "Press palms together in front of chest, lower hands slowly."]
+      ],
+      focused: [
+        ["Wrist circles", 40, "Roll wrists in smooth, continuous circles."],
+        ["Wrist lean stretch", 25, "On all fours, lean weight forward over palms."],
+        ["Wrist lean stretch", 25, "On all fours, lean weight forward over palms."],
+        ["Reverse wrist stretch", 20, "Backs of hands on floor, lean back slightly."],
+        ["Reverse wrist stretch", 20, "Backs of hands on floor, lean back slightly."],
+        ["Prayer stretch", 20, "Press palms together, lower hands slowly."],
+        ["Prayer stretch", 20, "Press palms together, lower hands slowly."],
+        ["Forearm extensor stretch - L", 20, "Extend left arm, gently push back of hand."],
+        ["Forearm extensor stretch - R", 20, "Extend right arm, gently push back of hand."]
+      ]
+    },
+    {
+      id: 'core',
+      label: 'Core & Spine',
+      quick: [
+        ["Cat-cow movement", 40, "On all fours, arch back up, then let belly drop."],
+        ["Thoracic rotation", 40, "On all fours, hand behind head, rotate elbow up. Switch halfway."],
+        ["Cobra stretch", 30, "Lie on stomach and press chest up gently."]
+      ],
+      focused: [
+        ["Cat-cow movement", 40, "On all fours, arch back up, then let belly drop."],
+        ["Thoracic rotation stretch", 50, "Hand behind head, rotate elbow up. Alternate sides."],
+        ["Cobra stretch", 25, "Lie on stomach and press chest up gently."],
+        ["Cobra stretch", 25, "Lie on stomach and press chest up gently."],
+        ["Hollow body breathing", 20, "Lie on back, press lower back into floor, elevate legs."],
+        ["Hollow body breathing", 20, "Lie on back, press lower back into floor, elevate legs."]
+      ]
+    },
+    {
+      id: 'hips',
+      label: 'Hips & Glutes',
+      quick: [
+        ["Deep squat hold", 40, "Drop into low squat, keep heels flat and chest up."],
+        ["Hip flexor stretch", 40, "Kneel, tuck pelvis, shift weight forward. Switch halfway."],
+        ["Seated figure-4 stretch", 40, "Cross ankle over knee, lean forward. Switch halfway."]
+      ],
+      focused: [
+        ["Hip circles", 40, "Stand and make large, slow circles with pelvis."],
+        ["Hip flexor stretch - L", 30, "Kneel on right knee, shift weight forward."],
+        ["Hip flexor stretch - R", 30, "Kneel on left knee, shift weight forward."],
+        ["Seated figure-4 stretch - L", 30, "Cross left ankle over right knee, press down."],
+        ["Seated figure-4 stretch - R", 30, "Cross right ankle over left knee, press down."],
+        ["Seated adductor stretch - L", 30, "Legs wide, bend left leg in, lean forward."],
+        ["Seated adductor stretch - R", 30, "Legs wide, bend right leg in, lean forward."],
+        ["Deep squat hold", 35, "Drop into low squat, heels flat."],
+        ["Deep squat hold", 35, "Drop into low squat, heels flat."]
+      ]
+    },
+    {
+      id: 'legs',
+      label: 'Legs & Feet',
+      quick: [
+        ["Relaxed forward fold", 40, "Stand, bend at hips, let upper body hang heavy."],
+        ["Quad stretch", 40, "Stand on one leg, pull heel to glute. Switch halfway."],
+        ["Ankle mobility rocks", 40, "Half-kneeling, drive knee over toes. Switch halfway."],
+        ["Toe extension stretch", 30, "Kneel with toes tucked under, sit back on heels."]
+      ],
+      focused: [
+        ["Standing hamstring stretch - L", 30, "Left heel forward, hinge at hips."],
+        ["Standing hamstring stretch - R", 30, "Right heel forward, hinge at hips."],
+        ["Quad stretch - L", 30, "Stand on right leg, pull left heel to glute."],
+        ["Quad stretch - R", 30, "Stand on left leg, pull right heel to glute."],
+        ["Calf stretch against wall - L", 30, "Left foot back, press heel into floor."],
+        ["Calf stretch against wall - R", 30, "Right foot back, press heel into floor."],
+        ["Ankle circles", 40, "Lift foot slightly, roll ankle in circles."],
+        ["Ankle mobility rocks", 40, "Half-kneeling, drive knee over toes without lifting heel."],
+        ["Toe extension stretch", 20, "Kneel with toes tucked under, sit back on heels."],
+        ["Toe flexion stretch", 20, "Kneel with feet flat on floor, sit back on heels."],
+        ["Dead hang (optional)", 25, "Hang passively from a pull-up bar."],
+        ["Dead hang (optional)", 25, "Hang passively from a pull-up bar."],
+        ["Relaxed forward fold", 30, "Stand, bend at hips, let upper body hang heavy."],
+        ["Relaxed forward fold", 30, "Stand, bend at hips, let upper body hang heavy."]
+      ]
+    }
+  ];
+
+  // --- Audio Engine ---
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function playSound(type) {
+    const style = document.getElementById('soundOption').value;
+    if (style === 'none') return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = style === 'digital' ? 'square' : style === 'soft' ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(type === 'end' ? 880 : 440, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+  }
+
+  // --- State ---
+  let sequence = [];
+  let currentIndex = -1; 
+  let timeLeft = 10;
+  let elapsedTotal = 0;
+  let timer = null;
+  let isPaused = false;
+
+  // --- Generate UI ---
+  const sectionsList = document.getElementById('sectionsList');
+  workoutData.forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'category-row';
+    row.innerHTML = `
+      <div class="cat-label">${cat.label}</div>
+      <div class="cat-chips">
+        <div class="chip" data-cat="${cat.id}" data-mode="quick">Quick</div>
+        <div class="chip" data-cat="${cat.id}" data-mode="focused">Focused</div>
+      </div>
+    `;
+    sectionsList.appendChild(row);
+  });
+
+  // Handle Chip Clicks
+  sectionsList.addEventListener('click', (e) => {
+    if (e.target.classList.contains('chip')) {
+      const isActive = e.target.classList.contains('active');
+      
+      // Deselect all chips in this category first
+      const siblings = e.target.parentElement.querySelectorAll('.chip');
+      siblings.forEach(s => s.classList.remove('active'));
+
+      // Toggle logic
+      if (!isActive) e.target.classList.add('active');
+
+      buildSequence();
+    }
+  });
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    return `${m}:${rs.toString().padStart(2, '0')}`;
+  }
+
+  function buildSequence() {
+    let activeExercises = [];
+
+    // Build array based on selected chips
+    workoutData.forEach(cat => {
+      const activeChip = document.querySelector(`.chip[data-cat="${cat.id}"].active`);
+      if (activeChip) {
+        activeExercises = activeExercises.concat(cat[activeChip.dataset.mode]);
+      }
+    });
+
+    sequence = [];
+    
+    for (let i = 0; i < activeExercises.length; i++) {
+      const [name, dur, desc] = activeExercises[i];
+      sequence.push({ name, dur, isRest: false, desc });
+      
+      if (i < activeExercises.length - 1) {
+        const nextName = activeExercises[i+1][0];
+        const isSameExercise = (name === nextName);
+        
+        // 5s rest for exact same stretch (Focused), 10s transition otherwise
+        sequence.push({ 
+          name: "Rest", 
+          dur: isSameExercise ? 5 : 10, 
+          isRest: true, 
+          desc: isSameExercise 
+            ? "Brief pause. Shake it out, then go slightly deeper for set two." 
+            : "Transition. Take a deep breath and move into position for the next stretch."
+        });
+      }
+    }
+
+    const total = sequence.reduce((acc, curr) => acc + curr.dur, 0) + (sequence.length > 0 ? 10 : 0);
+    document.getElementById('statTotal').textContent = formatTime(total);
+    document.getElementById('statRemaining').textContent = formatTime(total);
+    
+    renderPlanned();
+    updateNextIndicator();
+  }
+
+  function renderPlanned() {
+    document.getElementById('planned').innerHTML = sequence.map((ex, i) => `
+      <div class="queue-item ${i === currentIndex ? 'active' : ''} ${i < currentIndex ? 'done' : ''}" id="item-${i}">
+        <span>${ex.name}</span><span>${formatTime(ex.dur)}</span>
+      </div>
+    `).join('');
+
+    if (currentIndex >= 0 && timer) {
+      const activeEl = document.getElementById(`item-${currentIndex}`);
+      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  function updateNextIndicator() {
+    const nextIdx = currentIndex === -1 ? 0 : currentIndex + 1;
+    const box = document.getElementById('upcomingBox');
+    
+    if (sequence.length === 0) {
+      box.textContent = "Up Next: --";
+    } else if (nextIdx < sequence.length) {
+      box.textContent = `Up Next: ${sequence[nextIdx].name} (${formatTime(sequence[nextIdx].dur)})`;
+    } else {
+      box.textContent = "Up Next: Workout Complete!";
+    }
+  }
+
+  function tick() {
+    if (isPaused) return;
+    
+    timeLeft--;
+    elapsedTotal++;
+
+    if (timeLeft <= 3 && timeLeft > 0) playSound('tick');
+    if (timeLeft <= 0) moveToNext();
+    else updateUI();
+  }
+  
+  function moveToNext() {
+    playSound('end');
+    currentIndex++;
+    if (currentIndex < sequence.length) {
+      timeLeft = sequence[currentIndex].dur;
+      document.getElementById('timerPanel').classList.remove('is-preparing');
+      updateUI();
+    } else {
+      clearInterval(timer);
+      alert("Session Complete! Great job.");
+      reset();
+    }
+  }
+
+  function updateUI() {
+    const isPrep = currentIndex === -1;
+    document.getElementById('currentName').textContent = isPrep ? "GET READY" : sequence[currentIndex].name;
+    document.getElementById('currentDesc').textContent = isPrep ? "Find a clear space and get comfortable before the timer starts." : sequence[currentIndex].desc;
+    document.getElementById('currentTime').textContent = timeLeft.toString().padStart(2, '0');
+    
+    const totalDuration = sequence.reduce((acc, curr) => acc + curr.dur, 0) + 10;
+    const remaining = totalDuration - elapsedTotal;
+    
+    document.getElementById('statElapsed').textContent = formatTime(elapsedTotal);
+    document.getElementById('statRemaining').textContent = formatTime(Math.max(0, remaining));
+
+    const stepTotal = isPrep ? 10 : sequence[currentIndex].dur;
+    const progress = ((stepTotal - timeLeft) / stepTotal) * 100;
+    document.getElementById('progressBar').style.width = `${progress}%`;
+    
+    renderPlanned();
+    updateNextIndicator();
+  }
+
+  function start() {
+    if (sequence.length === 0) return alert("Select at least one Quick or Focused mode to begin!");
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    currentIndex = -1;
+    timeLeft = 10;
+    elapsedTotal = 0;
+    
+    document.getElementById('timerPanel').classList.add('is-preparing');
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('pauseBtn').disabled = false;
+    document.getElementById('skipBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = false;
+    
+    updateUI();
+    timer = setInterval(tick, 1000);
+  }
+
+  function skip() {
+    if (currentIndex >= -1) elapsedTotal += timeLeft;
+    if (isPaused) {
+      isPaused = false;
+      document.getElementById('pauseBtn').textContent = "Pause";
+    }
+    moveToNext();
+  }
+
+  function reset() {
+    clearInterval(timer);
+    timer = null;
+    currentIndex = -1;
+    elapsedTotal = 0;
+    isPaused = false;
+    
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('pauseBtn').disabled = true;
+    document.getElementById('skipBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('pauseBtn').textContent = "Pause";
+    document.getElementById('timerPanel').classList.remove('is-preparing');
+    document.getElementById('progressBar').style.width = `0%`;
+    document.getElementById('currentName').textContent = "Select areas to begin";
+    document.getElementById('currentDesc').textContent = "Tap 'Quick' for compound stretches or 'Focused' for double-sets.";
+    document.getElementById('currentTime').textContent = "00:00";
+    
+    buildSequence(); 
+  }
+
+  document.getElementById('startBtn').onclick = start;
+  document.getElementById('stopBtn').onclick = reset;
+  document.getElementById('skipBtn').onclick = skip;
+  document.getElementById('pauseBtn').onclick = () => {
+    isPaused = !isPaused;
+    document.getElementById('pauseBtn').textContent = isPaused ? "Resume" : "Pause";
+  };
+</script>
+</body>
+</html>
