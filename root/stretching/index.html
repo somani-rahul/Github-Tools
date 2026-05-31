@@ -2,23 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1, user-scalable=0" />
   <title>Stretching Planner Pro</title>
   <style>
     :root {
       --bg: #0f172a; --card: #1e293b; --accent: #38bdf8;
       --text: #f1f5f9; --muted: #94a3b8; --border: rgba(255,255,255,0.1);
-      --prep: #facc15; --success: #22c55e;
+      --prep: #facc15; --success: #22c55e; --rest: #a78bfa;
     }
     * { box-sizing: border-box; }
     body {
       font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg); color: var(--text); margin: 0; padding: 20px;
+      background: var(--bg); color: var(--text); margin: 0; padding: 15px;
     }
-    .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+    .container { max-width: 900px; margin: 0 auto; }
     
+    /* Global App Header */
+    .app-header { margin-bottom: 20px; display: flex; flex-direction: column; gap: 5px; }
+    .app-header h1 { margin: 0; font-size: 1.6rem; color: var(--text); }
+    .app-header a { color: var(--accent); text-decoration: none; font-size: 0.95rem; font-weight: 600; display: inline-block; transition: 0.2s;}
+    .app-header a:hover { opacity: 0.8; text-decoration: underline; }
+
     .panel { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
     
+    /* App Navigation Tabs */
+    .tab-nav { display: flex; gap: 10px; margin-bottom: 20px; background: var(--card); padding: 10px; border-radius: 12px; border: 1px solid var(--border); }
+    .tab-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; background: transparent; color: var(--muted); transition: 0.2s; font-size: 0.95rem; }
+    .tab-btn.active { background: var(--accent); color: #0f172a; }
+    
+    /* View Toggles */
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
     /* Category Rows */
     .category-row {
       display: flex; justify-content: space-between; align-items: center;
@@ -37,53 +52,81 @@
     .chip.active { background: var(--accent); color: #0f172a; border-color: white; }
 
     /* Stats Dashboard */
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; text-align: center; }
-    .stat-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; border: 1px solid var(--border); }
-    .stat-label { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; display: block; }
-    .stat-value { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px; text-align: center; }
+    .stat-box { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
+    .stat-label { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; display: block; }
+    .stat-value { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
     /* Timer Styles */
-    .timer-display { text-align: center; position: sticky; top: 20px; }
-    .current-name { font-size: 1.3rem; font-weight: 700; color: var(--text); display: block; }
-    .current-desc { font-size: 0.9rem; color: var(--muted); margin: 8px auto 10px; min-height: 2.5em; max-width: 90%; line-height: 1.4; }
-    .current-time { font-size: 4.5rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); margin: 5px 0; }
-    .is-preparing .current-time { color: var(--prep); }
+    .timer-display { text-align: center; max-width: 600px; margin: 0 auto; }
+    .current-name { font-size: 1.6rem; font-weight: 700; color: var(--text); display: block; }
+    .current-desc { font-size: 0.95rem; color: var(--muted); margin: 8px auto 15px; min-height: 2.5em; max-width: 95%; line-height: 1.4; }
+    .current-time { font-size: 6rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); margin: 5px 0; line-height: 1; }
     
-    .progress-container { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-bottom: 15px; }
+    /* Dynamic Timer Colors */
+    .is-preparing .current-time { color: var(--prep); }
+    .is-preparing .current-name { color: var(--prep); }
+    .is-resting .current-time { color: var(--rest); }
+    .is-resting .current-name { color: var(--rest); }
+    
+    .progress-container { height: 12px; background: #334155; border-radius: 6px; overflow: hidden; margin-bottom: 25px; }
     #progressBar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s linear; }
     .is-preparing #progressBar { background: var(--prep); }
+    .is-resting #progressBar { background: var(--rest); }
 
     /* Upcoming Highlight */
     .upcoming-box {
       background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
-      color: var(--accent); padding: 12px; border-radius: 8px; margin-bottom: 20px;
-      font-size: 0.95rem; font-weight: 600; text-align: center;
+      color: var(--accent); padding: 15px; border-radius: 8px; margin-bottom: 25px;
+      font-size: 1rem; font-weight: 600; text-align: center;
     }
 
-    .audio-settings { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 0.85rem; color: var(--muted); }
-    select { background: #0f172a; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; }
+    .audio-settings { 
+      display: flex; flex-direction: column; gap: 12px; 
+      margin-bottom: 25px; font-size: 0.9rem; color: var(--muted); 
+      background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;
+    }
+    .audio-row { display: flex; justify-content: space-between; align-items: center; }
+    select { background: #0f172a; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; outline: none; }
+    input[type=range] { width: 140px; accent-color: var(--accent); cursor: pointer; }
 
-    .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    button { padding: 14px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; }
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .controls button { padding: 18px 10px; border-radius: 10px; border: none; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
+    .controls button:active { transform: scale(0.98); }
     .btn-primary { background: var(--accent); color: #0f172a; grid-column: span 3; }
     .btn-secondary { background: #475569; color: white; }
-    button:disabled { opacity: 0.3; cursor: not-allowed; }
+    .controls button:disabled { opacity: 0.3; cursor: not-allowed; }
 
-    .queue-list { max-height: 500px; overflow-y: auto; padding-right: 5px; }
-    .queue-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; border-radius: 6px; }
-    .queue-item.active { background: rgba(56, 189, 248, 0.15); color: var(--accent); font-weight: 600; border-left: 3px solid var(--accent); }
+    /* Report Queue Styles */
+    .queue-list { max-height: 400px; overflow-y: auto; padding-right: 5px; }
+    .queue-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 0.95rem; border-radius: 6px; }
+    .queue-item.active { background: rgba(56, 189, 248, 0.15); color: var(--accent); font-weight: 600; border-left: 4px solid var(--accent); }
     .queue-item.done { opacity: 0.3; }
+
+    /* Badges */
+    .badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-right: 8px; font-weight: bold; }
+    .badge-work { border: 1px solid var(--accent); color: var(--accent); }
+    .badge-rest { border: 1px solid var(--rest); color: var(--rest); }
 
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-
-    @media (max-width: 850px) { .container { grid-template-columns: 1fr; } .timer-display { position: static; } }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <main>
+  
+  <div class="app-header">
+    <a href="../">← Back to tools</a>
+    <h1>Stretching Planner Pro</h1>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tabSetupBtn" onclick="switchTab('setup')">⚙️ Setup Routine</button>
+    <button class="tab-btn" id="tabWorkoutBtn" onclick="switchTab('workout')">🧘 Active Session</button>
+  </div>
+
+  <div id="setupView" class="view-section active">
     <div class="panel">
       <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
         <h2 style="margin:0;">Target Areas</h2>
@@ -93,12 +136,18 @@
     </div>
 
     <div class="panel">
-      <h3 style="margin-top:0">Workout Sequence</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="margin:0">Workout Sequence</h3>
+          <div id="setupEstTime" class="muted" style="font-size: 0.85rem; font-weight: 600; margin-top: 4px; color: var(--accent);">Total Est. Time: 0:00</div>
+        </div>
+        <button class="btn-primary" style="padding: 8px 16px; font-size: 0.9rem; grid-column: auto; border-radius: 8px; border:none; font-weight: bold; cursor: pointer; width: auto;" onclick="switchTab('workout')">Go to Timer ➔</button>
+      </div>
       <div id="planned" class="queue-list"></div>
     </div>
-  </main>
+  </div>
 
-  <aside>
+  <div id="workoutView" class="view-section">
     <div class="panel timer-display" id="timerPanel">
       <div class="stats-grid">
         <div class="stat-box">
@@ -116,7 +165,7 @@
       </div>
 
       <span class="current-name" id="currentName">Select areas to begin</span>
-      <div class="current-desc" id="currentDesc">Tap "Quick" for compound stretches or "Focused" for double-sets.</div>
+      <div class="current-desc" id="currentDesc">Go to Setup to build your routine.</div>
       
       <div class="current-time" id="currentTime">00:00</div>
       <div class="progress-container"><div id="progressBar"></div></div>
@@ -124,26 +173,48 @@
       <div class="upcoming-box" id="upcomingBox">Up Next: --</div>
 
       <div class="audio-settings">
-        <span>Sound Cues:</span>
-        <select id="soundOption">
-          <option value="digital">Digital Beep</option>
-          <option value="soft">Soft Sine</option>
-          <option value="wood">Percussive</option>
-          <option value="none">Mute</option>
-        </select>
+        <div class="audio-row">
+          <span>Sound Cues:</span>
+          <select id="soundOption">
+            <option value="digital">Digital Beep</option>
+            <option value="soft">Soft Sine</option>
+            <option value="wood">Percussive</option>
+            <option value="none">Mute</option>
+          </select>
+        </div>
+        <div class="audio-row">
+          <span>Volume:</span>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05">
+        </div>
       </div>
 
       <div class="controls">
-        <button id="startBtn" class="btn-primary">START SESSION</button>
+        <button id="startBtn" class="btn-primary" disabled>START SESSION</button>
         <button id="pauseBtn" class="btn-secondary" disabled>Pause</button>
         <button id="skipBtn" class="btn-secondary" disabled>Skip</button>
         <button id="stopBtn" class="btn-secondary" disabled>Reset</button>
       </div>
     </div>
-  </aside>
+  </div>
 </div>
 
 <script>
+  // --- UI Tab Management ---
+  function switchTab(tab) {
+    document.getElementById('setupView').classList.remove('active');
+    document.getElementById('workoutView').classList.remove('active');
+    document.getElementById('tabSetupBtn').classList.remove('active');
+    document.getElementById('tabWorkoutBtn').classList.remove('active');
+
+    if (tab === 'setup') {
+      document.getElementById('setupView').classList.add('active');
+      document.getElementById('tabSetupBtn').classList.add('active');
+    } else {
+      document.getElementById('workoutView').classList.add('active');
+      document.getElementById('tabWorkoutBtn').classList.add('active');
+    }
+  }
+
   // --- Dual-Mode Database ---
   const workoutData = [
     {
@@ -288,17 +359,27 @@
 
   // --- Audio Engine ---
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
   function playSound(type) {
     const style = document.getElementById('soundOption').value;
-    if (style === 'none') return;
+    const volume = parseFloat(document.getElementById('volumeSlider').value);
+    
+    if (style === 'none' || volume === 0) return;
+    
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.connect(gain); 
+    gain.connect(audioCtx.destination);
+    
     osc.type = style === 'digital' ? 'square' : style === 'soft' ? 'sine' : 'triangle';
-    osc.frequency.setValueAtTime(type === 'end' ? 880 : 440, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    osc.frequency.setValueAtTime(type === 'end' ? 1046.50 : 523.25, audioCtx.currentTime);
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    
+    const duration = type === 'end' ? 0.6 : 0.15;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    
+    osc.start(); 
+    osc.stop(audioCtx.currentTime + duration + 0.1);
   }
 
   // --- State ---
@@ -329,11 +410,9 @@
     if (e.target.classList.contains('chip')) {
       const isActive = e.target.classList.contains('active');
       
-      // Deselect all chips in this category first
       const siblings = e.target.parentElement.querySelectorAll('.chip');
       siblings.forEach(s => s.classList.remove('active'));
 
-      // Toggle logic
       if (!isActive) e.target.classList.add('active');
 
       buildSequence();
@@ -349,7 +428,6 @@
   function buildSequence() {
     let activeExercises = [];
 
-    // Build array based on selected chips
     workoutData.forEach(cat => {
       const activeChip = document.querySelector(`.chip[data-cat="${cat.id}"].active`);
       if (activeChip) {
@@ -367,7 +445,6 @@
         const nextName = activeExercises[i+1][0];
         const isSameExercise = (name === nextName);
         
-        // 5s rest for exact same stretch (Focused), 10s transition otherwise
         sequence.push({ 
           name: "Rest", 
           dur: isSameExercise ? 5 : 10, 
@@ -383,20 +460,56 @@
     document.getElementById('statTotal').textContent = formatTime(total);
     document.getElementById('statRemaining').textContent = formatTime(total);
     
+    // Update Estimated Time in Setup View
+    if (sequence.length === 0) {
+      document.getElementById('setupEstTime').textContent = "Total Est. Time: 0:00";
+    } else {
+      document.getElementById('setupEstTime').textContent = `Total Est. Time: ${formatTime(total)}`;
+    }
+    
+    // Enable/disable start button based on selection
+    document.getElementById('startBtn').disabled = sequence.length === 0;
+
+    // Reset UI if no sequence
+    if (sequence.length === 0) {
+      document.getElementById('currentName').textContent = "Select areas to begin";
+      document.getElementById('currentDesc').textContent = "Go to Setup to build your routine.";
+      document.getElementById('currentTime').textContent = "00:00";
+    }
+
     renderPlanned();
     updateNextIndicator();
   }
 
   function renderPlanned() {
-    document.getElementById('planned').innerHTML = sequence.map((ex, i) => `
+    document.getElementById('planned').innerHTML = sequence.map((ex, i) => {
+      let badgeClass = 'badge-work';
+      let badgeText = 'WORK';
+      let nameStyle = 'color: var(--text); font-weight: 600;';
+      
+      if (ex.isRest) {
+        badgeClass = 'badge-rest';
+        badgeText = 'REST';
+        nameStyle = 'color: var(--rest); font-weight: 600;';
+      }
+
+      return `
       <div class="queue-item ${i === currentIndex ? 'active' : ''} ${i < currentIndex ? 'done' : ''}" id="item-${i}">
-        <span>${ex.name}</span><span>${formatTime(ex.dur)}</span>
-      </div>
-    `).join('');
+        <div style="display:flex; align-items:center;">
+          <span class="badge ${badgeClass}">${badgeText}</span>
+          <span style="${nameStyle}">${ex.name}</span>
+        </div>
+        <div class="muted" style="font-weight: bold; color: var(--text);">${formatTime(ex.dur)}</div>
+      </div>`;
+    }).join('');
 
     if (currentIndex >= 0 && timer) {
       const activeEl = document.getElementById(`item-${currentIndex}`);
-      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (activeEl) {
+         setTimeout(() => {
+            activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+         }, 50);
+      }
     }
   }
 
@@ -429,7 +542,6 @@
     currentIndex++;
     if (currentIndex < sequence.length) {
       timeLeft = sequence[currentIndex].dur;
-      document.getElementById('timerPanel').classList.remove('is-preparing');
       updateUI();
     } else {
       clearInterval(timer);
@@ -440,17 +552,32 @@
 
   function updateUI() {
     const isPrep = currentIndex === -1;
-    document.getElementById('currentName').textContent = isPrep ? "GET READY" : sequence[currentIndex].name;
-    document.getElementById('currentDesc').textContent = isPrep ? "Find a clear space and get comfortable before the timer starts." : sequence[currentIndex].desc;
-    document.getElementById('currentTime').textContent = timeLeft.toString().padStart(2, '0');
+    const currentItem = isPrep ? null : sequence[currentIndex];
     
+    // Manage dynamic color classes
+    const panel = document.getElementById('timerPanel');
+    panel.classList.remove('is-preparing', 'is-resting');
+    
+    if (isPrep) {
+        panel.classList.add('is-preparing');
+    } else if (currentItem.isRest) {
+        panel.classList.add('is-resting');
+    }
+
+    // Update textual data
+    document.getElementById('currentName').textContent = isPrep ? "GET READY" : currentItem.name;
+    document.getElementById('currentDesc').textContent = isPrep ? "Find a clear space and get comfortable before the timer starts." : currentItem.desc;
+    document.getElementById('currentTime').textContent = formatTime(timeLeft);
+    
+    // Dynamic Stats
     const totalDuration = sequence.reduce((acc, curr) => acc + curr.dur, 0) + 10;
     const remaining = totalDuration - elapsedTotal;
     
     document.getElementById('statElapsed').textContent = formatTime(elapsedTotal);
     document.getElementById('statRemaining').textContent = formatTime(Math.max(0, remaining));
 
-    const stepTotal = isPrep ? 10 : sequence[currentIndex].dur;
+    // Progress Bar
+    const stepTotal = isPrep ? 10 : currentItem.dur;
     const progress = ((stepTotal - timeLeft) / stepTotal) * 100;
     document.getElementById('progressBar').style.width = `${progress}%`;
     
@@ -459,14 +586,20 @@
   }
 
   function start() {
-    if (sequence.length === 0) return alert("Select at least one Quick or Focused mode to begin!");
+    if (sequence.length === 0) {
+      switchTab('setup');
+      return alert("Select at least one Target Area to begin!");
+    }
+    
     if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    // Auto-switch to workout tab
+    switchTab('workout');
     
     currentIndex = -1;
     timeLeft = 10;
     elapsedTotal = 0;
     
-    document.getElementById('timerPanel').classList.add('is-preparing');
     document.getElementById('startBtn').disabled = true;
     document.getElementById('pauseBtn').disabled = false;
     document.getElementById('skipBtn').disabled = false;
@@ -497,15 +630,18 @@
     document.getElementById('skipBtn').disabled = true;
     document.getElementById('stopBtn').disabled = true;
     document.getElementById('pauseBtn').textContent = "Pause";
-    document.getElementById('timerPanel').classList.remove('is-preparing');
+    
+    const panel = document.getElementById('timerPanel');
+    panel.classList.remove('is-preparing', 'is-resting');
     document.getElementById('progressBar').style.width = `0%`;
     document.getElementById('currentName').textContent = "Select areas to begin";
-    document.getElementById('currentDesc').textContent = "Tap 'Quick' for compound stretches or 'Focused' for double-sets.";
+    document.getElementById('currentDesc').textContent = "Go to Setup to build your routine.";
     document.getElementById('currentTime').textContent = "00:00";
     
     buildSequence(); 
   }
 
+  // Event Listeners
   document.getElementById('startBtn').onclick = start;
   document.getElementById('stopBtn').onclick = reset;
   document.getElementById('skipBtn').onclick = skip;
