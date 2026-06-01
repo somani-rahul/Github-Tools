@@ -53,7 +53,11 @@
     /* Timer Styles */
     .timer-display { text-align: center; max-width: 600px; margin: 0 auto; }
     .current-name { font-size: 1.6rem; font-weight: 700; color: var(--text); display: block; }
-    .current-desc { font-size: 0.95rem; color: var(--muted); margin: 8px auto 15px; min-height: 2.5em; max-width: 95%; line-height: 1.4; }
+    .current-desc { font-size: 0.95rem; color: var(--muted); margin: 8px auto 5px; min-height: 2.5em; max-width: 95%; line-height: 1.4; }
+    
+    /* Prominent Rep Target styling */
+    .current-reps { font-size: 1.3rem; font-weight: 800; color: var(--text); background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent); padding: 8px 16px; border-radius: 8px; display: inline-block; margin-bottom: 10px; display: none; }
+    
     .current-time { font-size: 6rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); margin: 5px 0; line-height: 1; }
     
     /* Dynamic Timer Colors */
@@ -169,6 +173,8 @@
       <span class="current-name" id="currentName">Awaiting Data</span>
       <div class="current-desc" id="currentDesc">Go to Setup to load your JSON.</div>
       
+      <div class="current-reps" id="currentReps">Target: -- Reps</div>
+      
       <div class="current-time" id="currentTime">00:00</div>
       <div class="progress-container"><div id="progressBar"></div></div>
 
@@ -252,6 +258,7 @@
   let elapsedTotal = 0;
   let timer = null;
   let isPaused = false;
+  let isSkipCooldown = false; // Prevents double-skipping
 
   function formatTime(s) {
     const m = Math.floor(s / 60);
@@ -315,7 +322,6 @@
         for (let s = 1; s <= sets; s++) {
           let descText = [];
           if (item.optional) descText.push("[Optional]");
-          if (item.reps) descText.push(`Target: ${item.reps} Reps.`);
           if (item.hold_sec) descText.push(`Hold for ${item.hold_sec} seconds.`);
           if (item.per_side) descText.push(`(Perform on each side).`);
           if (item.incline) descText.push(`Incline: ${item.incline}.`);
@@ -332,6 +338,7 @@
               isRest: false,
               isPrepare: true,
               isUntimed: false,
+              reps: null,
               desc: `Next: ${item.exercise}` + (sets > 1 ? ` (Set ${s}/${sets})` : '')
             });
           }
@@ -342,6 +349,7 @@
             isRest: false,
             isPrepare: false,
             isUntimed: isUntimed,
+            reps: item.reps || null,
             desc: descText.join(' ') || `Section: ${sec.name}`
           });
 
@@ -353,6 +361,7 @@
               isRest: true,
               isPrepare: false,
               isUntimed: false, 
+              reps: null,
               desc: isLastSet ? "Recover before the next exercise." : "Recover before your next set."
             });
           }
@@ -421,6 +430,7 @@
   function tick() {
     if (isPaused) return;
     
+    // Elapsed time is now a PURE stopwatch. It only increments in real-time.
     elapsedTotal++;
     currentStepElapsed++;
     
@@ -462,6 +472,7 @@
     if (index === -1) {
       document.getElementById('currentName').textContent = "Ready to start";
       document.getElementById('currentDesc').textContent = "Press Start Session when you are ready.";
+      document.getElementById('currentReps').style.display = 'none';
       document.getElementById('currentTime').textContent = "00:00";
       document.getElementById('progressBar').style.width = `0%`;
       
@@ -483,12 +494,22 @@
     document.getElementById('currentName').textContent = currentItem.name;
     document.getElementById('currentDesc').textContent = currentItem.desc;
     
+    // Explicit Rep Display
+    const repDisplay = document.getElementById('currentReps');
+    if (currentItem.reps) {
+        repDisplay.textContent = `Target: ${currentItem.reps} Reps`;
+        repDisplay.style.display = 'inline-block';
+    } else {
+        repDisplay.style.display = 'none';
+    }
+    
     if (!currentItem.isUntimed) {
       document.getElementById('currentTime').textContent = formatTime(timeLeft);
     } else {
       document.getElementById('currentTime').textContent = formatTime(currentStepElapsed);
     }
     
+    // Calculate remaining estimated time purely based on what is left in the sequence
     let remainingEst = 0;
     for(let i = index + 1; i < sequence.length; i++) {
       remainingEst += sequence[i].dur;
@@ -525,6 +546,10 @@
       skipBtn.classList.add("btn-secondary");
     }
     
+    // Obey cooldown flag
+    if (isSkipCooldown) skipBtn.disabled = true;
+    else skipBtn.disabled = false;
+    
     updateNextIndicator();
   }
 
@@ -550,7 +575,21 @@
   }
 
   function skip() {
-    if (currentIndex >= 0) elapsedTotal += timeLeft;
+    // Prevent accidental double clicks
+    if (isSkipCooldown) return;
+    
+    isSkipCooldown = true;
+    document.getElementById('skipBtn').disabled = true;
+    
+    setTimeout(() => {
+        isSkipCooldown = false;
+        if (timer) { // Only re-enable if session is still active
+            document.getElementById('skipBtn').disabled = false;
+        }
+    }, 1500);
+
+    // Note: elapsedTotal is no longer fast-forwarded here! It runs continuously via the tick() interval.
+    
     if (isPaused) {
       isPaused = false;
       document.getElementById('pauseBtn').textContent = "Pause";
@@ -565,6 +604,7 @@
     elapsedTotal = 0;
     currentStepElapsed = 0;
     isPaused = false;
+    isSkipCooldown = false;
     
     document.getElementById('startBtn').disabled = false;
     document.getElementById('pauseBtn').disabled = true;
@@ -577,6 +617,7 @@
     document.getElementById('progressBar').style.width = `0%`;
     document.getElementById('currentName').textContent = "Ready to start";
     document.getElementById('currentDesc').textContent = "Press Start Session when you are ready.";
+    document.getElementById('currentReps').style.display = 'none';
     document.getElementById('currentTime').textContent = "00:00";
     
     const rawData = document.getElementById('jsonInput').value.trim();
