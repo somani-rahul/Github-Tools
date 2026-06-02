@@ -661,6 +661,48 @@
     isPaused = !isPaused;
     document.getElementById('pauseBtn').textContent = isPaused ? "Resume" : "Pause";
   };
+
+  // --- ACCIDENTAL LEAVE PROTECTION ---
+
+  // Warn before refresh or closing the tab
+  window.addEventListener('beforeunload', function (e) {
+    if (sequence.length > 0 && timer) { 
+      e.preventDefault();
+      e.returnValue = ''; 
+    }
+  });
+
+  // Trap the mobile swipe-back or hardware back button
+  history.pushState({ page: 1 }, document.title, location.href);
+
+  window.addEventListener('popstate', function (e) {
+    if (sequence.length > 0 && timer) {
+      
+      let wasRunning = false;
+      if (!isPaused) {
+        wasRunning = true;
+        isPaused = true;
+        document.getElementById('pauseBtn').textContent = "Resume";
+      }
+
+      const confirmLeave = confirm("You have an active workout. Are you sure you want to leave and lose your progress?");
+      
+      if (confirmLeave) {
+        sequence = []; 
+        clearInterval(timer);
+        history.back(); 
+      } else {
+        history.pushState({ page: 1 }, document.title, location.href);
+        if (wasRunning) {
+          isPaused = false;
+          document.getElementById('pauseBtn').textContent = "Pause";
+        }
+      }
+    } else {
+      history.back();
+    }
+  });
+
 </script>
 </body>
 </html>
