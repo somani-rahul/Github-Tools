@@ -87,7 +87,13 @@
     }
     .audio-row { display: flex; justify-content: space-between; align-items: center; }
     select { background: #0f172a; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; outline: none;}
-    input[type=range] { width: 140px; accent-color: var(--accent); cursor: pointer; }
+    
+    /* Volume Lock Styling */
+    .vol-control-group { display: flex; align-items: center; gap: 8px; }
+    .vol-lock-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
+    .vol-lock-btn.unlocked { background: rgba(34, 197, 94, 0.15); border-color: var(--success); }
+    input[type=range] { width: 120px; accent-color: var(--accent); cursor: pointer; transition: 0.2s; }
+    input[type=range]:disabled { opacity: 0.3; cursor: not-allowed; }
 
     .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .controls button { padding: 18px 10px; border-radius: 10px; border: none; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
@@ -175,7 +181,6 @@
       <div class="current-desc" id="currentDesc">Go to Setup to load your JSON.</div>
       
       <div class="current-notes" id="currentNotes"></div>
-
       <div class="current-reps" id="currentReps">Target: -- Reps</div>
       
       <div class="current-time" id="currentTime">00:00</div>
@@ -195,7 +200,10 @@
         </div>
         <div class="audio-row">
           <span>Volume:</span>
-          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05">
+          <div class="vol-control-group">
+            <button id="volLockBtn" class="vol-lock-btn" aria-label="Unlock Volume">🔒</button>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05" disabled>
+          </div>
         </div>
       </div>
 
@@ -228,7 +236,7 @@
     }
   }
 
-  // --- Audio Engine ---
+  // --- Audio Engine & Volume Safety Lock ---
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   
   function playSound(type) {
@@ -252,6 +260,40 @@
     osc.start(); 
     osc.stop(audioCtx.currentTime + duration + 0.1);
   }
+
+  // Auto-Lock Volume Logic
+  const volLockBtn = document.getElementById('volLockBtn');
+  const volSlider = document.getElementById('volumeSlider');
+  let volLockTimer;
+
+  function lockVolume() {
+    volSlider.disabled = true;
+    volLockBtn.textContent = '🔒';
+    volLockBtn.classList.remove('unlocked');
+  }
+
+  function resetVolLockTimer() {
+    clearTimeout(volLockTimer);
+    volLockTimer = setTimeout(lockVolume, 5000); // Auto-locks after 5 seconds of inactivity
+  }
+
+  volLockBtn.onclick = () => {
+    if (volSlider.disabled) {
+      volSlider.disabled = false;
+      volLockBtn.textContent = '🔓';
+      volLockBtn.classList.add('unlocked');
+      resetVolLockTimer();
+    } else {
+      lockVolume();
+      clearTimeout(volLockTimer);
+    }
+  };
+
+  volSlider.addEventListener('input', () => {
+    playSound('tick'); // Play preview sound so user knows how loud it is
+    resetVolLockTimer();
+  });
+
 
   // --- State ---
   let sequence = [];
@@ -432,15 +474,34 @@
   }
 
   function updateNextIndicator() {
-    const nextIdx = currentIndex === -1 ? 0 : currentIndex + 1;
     const box = document.getElementById('upcomingBox');
     
     if (sequence.length === 0) {
       box.textContent = "Up Next: --";
-    } else if (nextIdx < sequence.length) {
-      box.textContent = `Up Next: ${sequence[nextIdx].name} (${formatTime(sequence[nextIdx].dur)})`;
+      return;
+    }
+
+    let nextExercises = [];
+    let startIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+    
+    for (let i = startIndex; i < sequence.length; i++) {
+      let item = sequence[i];
+      if (!item.isPrepare && !item.isRest) {
+        let timeDisplay = item.isUntimed ? (item.reps ? `${item.reps} Reps` : `${formatTime(item.dur)} Est`) : formatTime(item.dur);
+        nextExercises.push(`<b>${item.name}</b> <span style="opacity:0.8; font-size:0.9em;">(${timeDisplay})</span>`);
+        if (nextExercises.length >= 2) break;
+      }
+    }
+    
+    if (nextExercises.length === 0) {
+      box.innerHTML = "Up Next: Workout Complete!";
+    } else if (nextExercises.length === 1) {
+      box.innerHTML = `<div style="color:var(--accent); margin-bottom:5px;">Up Next:</div>
+                       <div style="color:var(--text);">${nextExercises[0]}</div>`;
     } else {
-      box.textContent = "Up Next: Workout Complete!";
+      box.innerHTML = `<div style="color:var(--accent); margin-bottom:5px;">Up Next:</div>
+                       <div style="color:var(--text); margin-bottom:4px;">${nextExercises[0]}</div>
+                       <div style="color:var(--text); font-size:0.85em; opacity:0.7;">Then: ${nextExercises[1]}</div>`;
     }
   }
 
@@ -448,7 +509,7 @@
   function tick() {
     if (isPaused) return;
     
-    elapsedTotal++; // Pure stopwatch
+    elapsedTotal++; 
     currentStepElapsed++;
     
     const currentItem = sequence[currentIndex];
@@ -512,7 +573,6 @@
     document.getElementById('currentName').textContent = currentItem.name;
     document.getElementById('currentDesc').textContent = currentItem.desc;
     
-    // Explicit Rep Display
     const repDisplay = document.getElementById('currentReps');
     if (currentItem.reps) {
         repDisplay.textContent = `Target: ${currentItem.reps} Reps`;
@@ -521,7 +581,6 @@
         repDisplay.style.display = 'none';
     }
 
-    // Explicit Notes Display
     const notesDisplay = document.getElementById('currentNotes');
     if (currentItem.notes && currentItem.notes.trim() !== "") {
         notesDisplay.textContent = `💡 Note: ${currentItem.notes}`;
@@ -536,7 +595,6 @@
       document.getElementById('currentTime').textContent = formatTime(currentStepElapsed);
     }
     
-    // Dynamic Stats
     let remainingEst = 0;
     for(let i = index + 1; i < sequence.length; i++) {
       remainingEst += sequence[i].dur;
@@ -663,8 +721,6 @@
   };
 
   // --- ACCIDENTAL LEAVE PROTECTION ---
-
-  // Warn before refresh or closing the tab
   window.addEventListener('beforeunload', function (e) {
     if (sequence.length > 0 && timer) { 
       e.preventDefault();
@@ -672,7 +728,6 @@
     }
   });
 
-  // Trap the mobile swipe-back or hardware back button
   history.pushState({ page: 1 }, document.title, location.href);
 
   window.addEventListener('popstate', function (e) {
