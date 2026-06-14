@@ -88,7 +88,13 @@
     }
     .audio-row { display: flex; justify-content: space-between; align-items: center; }
     select { background: #0f172a; color: white; border: 1px solid var(--border); padding: 5px; border-radius: 4px; outline: none; }
-    input[type=range] { width: 140px; accent-color: var(--accent); cursor: pointer; }
+    
+    /* Volume Lock Styling */
+    .vol-control-group { display: flex; align-items: center; gap: 8px; }
+    .vol-lock-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
+    .vol-lock-btn.unlocked { background: rgba(34, 197, 94, 0.15); border-color: var(--success); }
+    input[type=range] { width: 120px; accent-color: var(--accent); cursor: pointer; transition: 0.2s; }
+    input[type=range]:disabled { opacity: 0.3; cursor: not-allowed; }
 
     .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .controls button { padding: 18px 10px; border-radius: 10px; border: none; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
@@ -184,7 +190,10 @@
         </div>
         <div class="audio-row">
           <span>Volume:</span>
-          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05">
+          <div class="vol-control-group">
+            <button id="volLockBtn" class="vol-lock-btn" aria-label="Unlock Volume">🔒</button>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.05" disabled>
+          </div>
         </div>
       </div>
 
@@ -215,7 +224,7 @@
     }
   }
 
-  // --- Dual-Mode Database ---
+  // --- Fully Separated Database (Left/Right explicitly split) ---
   const workoutData = [
     {
       id: 'warmup',
@@ -228,7 +237,8 @@
       label: 'Neck',
       quick: [
         ["Neck rotations", 30, "Slowly look over your left shoulder, then rotate right."],
-        ["Levator scapula stretch", 30, "Look down towards your armpit, apply gentle pressure. Switch halfway."]
+        ["Levator scapula stretch - Left", 20, "Look down towards your left armpit, apply gentle pressure."],
+        ["Levator scapula stretch - Right", 20, "Look down towards your right armpit, apply gentle pressure."]
       ],
       focused: [
         ["Neck flexion stretch", 20, "Keep your back straight and gently drop chin down toward chest."],
@@ -252,9 +262,11 @@
       label: 'Shoulders & Chest',
       quick: [
         ["Shoulder CARs", 40, "Make large, slow, controlled circles with your arms."],
-        ["Doorway chest stretch", 40, "Forearm on doorframe, lean forward. Switch sides halfway."],
+        ["Doorway chest stretch - Left", 25, "Place left forearm on doorframe and gently lean forward."],
+        ["Doorway chest stretch - Right", 25, "Place right forearm on doorframe and gently lean forward."],
         ["Child's pose with reach", 40, "Kneel, sit back on heels, reach arms far forward."],
-        ["Standing side bend", 40, "Reach arm overhead and lean torso side. Switch halfway."]
+        ["Standing side bend - Left", 25, "Reach left arm overhead and lean torso to the right."],
+        ["Standing side bend - Right", 25, "Reach right arm overhead and lean torso to the left."]
       ],
       focused: [
         ["Shoulder circles", 40, "Roll shoulders up, back, and down."],
@@ -297,12 +309,14 @@
       label: 'Core & Spine',
       quick: [
         ["Cat-cow movement", 40, "On all fours, arch back up, then let belly drop."],
-        ["Thoracic rotation", 40, "On all fours, hand behind head, rotate elbow up. Switch halfway."],
+        ["Thoracic rotation - Left", 25, "On all fours, place left hand behind head and rotate elbow up."],
+        ["Thoracic rotation - Right", 25, "On all fours, place right hand behind head and rotate elbow up."],
         ["Cobra stretch", 30, "Lie on stomach and press chest up gently."]
       ],
       focused: [
         ["Cat-cow movement", 40, "On all fours, arch back up, then let belly drop."],
-        ["Thoracic rotation stretch", 50, "Hand behind head, rotate elbow up. Alternate sides."],
+        ["Thoracic rotation stretch - L", 30, "Hand behind head, rotate elbow up."],
+        ["Thoracic rotation stretch - R", 30, "Hand behind head, rotate elbow up."],
         ["Cobra stretch", 25, "Lie on stomach and press chest up gently."],
         ["Cobra stretch", 25, "Lie on stomach and press chest up gently."],
         ["Hollow body breathing", 20, "Lie on back, press lower back into floor, elevate legs."],
@@ -314,8 +328,10 @@
       label: 'Hips & Glutes',
       quick: [
         ["Deep squat hold", 40, "Drop into low squat, keep heels flat and chest up."],
-        ["Hip flexor stretch", 40, "Kneel, tuck pelvis, shift weight forward. Switch halfway."],
-        ["Seated figure-4 stretch", 40, "Cross ankle over knee, lean forward. Switch halfway."]
+        ["Hip flexor stretch - Left", 30, "Kneel on right knee, shift weight forward into left foot."],
+        ["Hip flexor stretch - Right", 30, "Kneel on left knee, shift weight forward into right foot."],
+        ["Seated figure-4 stretch - Left", 30, "Cross left ankle over right knee and lean forward."],
+        ["Seated figure-4 stretch - Right", 30, "Cross right ankle over left knee and lean forward."]
       ],
       focused: [
         ["Hip circles", 40, "Stand and make large, slow circles with pelvis."],
@@ -334,8 +350,10 @@
       label: 'Legs & Feet',
       quick: [
         ["Relaxed forward fold", 40, "Stand, bend at hips, let upper body hang heavy."],
-        ["Quad stretch", 40, "Stand on one leg, pull heel to glute. Switch halfway."],
-        ["Ankle mobility rocks", 40, "Half-kneeling, drive knee over toes. Switch halfway."],
+        ["Quad stretch - Left", 25, "Stand on right leg, pull left heel to glute."],
+        ["Quad stretch - Right", 25, "Stand on left leg, pull right heel to glute."],
+        ["Ankle mobility rocks - Left", 25, "Half-kneeling, drive left knee over toes without lifting heel."],
+        ["Ankle mobility rocks - Right", 25, "Half-kneeling, drive right knee over toes without lifting heel."],
         ["Toe extension stretch", 30, "Kneel with toes tucked under, sit back on heels."]
       ],
       focused: [
@@ -346,7 +364,8 @@
         ["Calf stretch against wall - L", 30, "Left foot back, press heel into floor."],
         ["Calf stretch against wall - R", 30, "Right foot back, press heel into floor."],
         ["Ankle circles", 40, "Lift foot slightly, roll ankle in circles."],
-        ["Ankle mobility rocks", 40, "Half-kneeling, drive knee over toes without lifting heel."],
+        ["Ankle mobility rocks - L", 30, "Half-kneeling, drive left knee over toes without lifting heel."],
+        ["Ankle mobility rocks - R", 30, "Half-kneeling, drive right knee over toes without lifting heel."],
         ["Toe extension stretch", 20, "Kneel with toes tucked under, sit back on heels."],
         ["Toe flexion stretch", 20, "Kneel with feet flat on floor, sit back on heels."],
         ["Dead hang (optional)", 25, "Hang passively from a pull-up bar."],
@@ -357,7 +376,7 @@
     }
   ];
 
-  // --- Audio Engine ---
+  // --- Audio Engine & Volume Safety Lock ---
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   
   function playSound(type) {
@@ -382,6 +401,39 @@
     osc.stop(audioCtx.currentTime + duration + 0.1);
   }
 
+  // Volume Auto-Lock Logic
+  const volLockBtn = document.getElementById('volLockBtn');
+  const volSlider = document.getElementById('volumeSlider');
+  let volLockTimer;
+
+  function lockVolume() {
+    volSlider.disabled = true;
+    volLockBtn.textContent = '🔒';
+    volLockBtn.classList.remove('unlocked');
+  }
+
+  function resetVolLockTimer() {
+    clearTimeout(volLockTimer);
+    volLockTimer = setTimeout(lockVolume, 5000); 
+  }
+
+  volLockBtn.onclick = () => {
+    if (volSlider.disabled) {
+      volSlider.disabled = false;
+      volLockBtn.textContent = '🔓';
+      volLockBtn.classList.add('unlocked');
+      resetVolLockTimer();
+    } else {
+      lockVolume();
+      clearTimeout(volLockTimer);
+    }
+  };
+
+  volSlider.addEventListener('input', () => {
+    playSound('tick'); 
+    resetVolLockTimer();
+  });
+
   // --- State ---
   let sequence = [];
   let currentIndex = -1; 
@@ -405,7 +457,6 @@
     sectionsList.appendChild(row);
   });
 
-  // Handle Chip Clicks
   sectionsList.addEventListener('click', (e) => {
     if (e.target.classList.contains('chip')) {
       const isActive = e.target.classList.contains('active');
@@ -443,15 +494,31 @@
       
       if (i < activeExercises.length - 1) {
         const nextName = activeExercises[i+1][0];
+        
+        // Smart transition logic
         const isSameExercise = (name === nextName);
+        
+        // Check if we are merely switching from Left to Right (or vice versa)
+        const baseCurrent = name.replace(/ - (Left|Right|L|R)$/, '');
+        const baseNext = nextName.replace(/ - (Left|Right|L|R)$/, '');
+        const isSideSwitch = (baseCurrent === baseNext) && (name !== nextName);
+        
+        let restDur = 10;
+        let restDesc = "Transition. Take a deep breath and move into position for the next stretch.";
+        
+        if (isSameExercise) {
+          restDur = 5;
+          restDesc = "Brief pause. Shake it out, then go slightly deeper for set two.";
+        } else if (isSideSwitch) {
+          restDur = 5;
+          restDesc = "Quickly switch to the other side.";
+        }
         
         sequence.push({ 
           name: "Rest", 
-          dur: isSameExercise ? 5 : 10, 
+          dur: restDur, 
           isRest: true, 
-          desc: isSameExercise 
-            ? "Brief pause. Shake it out, then go slightly deeper for set two." 
-            : "Transition. Take a deep breath and move into position for the next stretch."
+          desc: restDesc
         });
       }
     }
@@ -460,22 +527,16 @@
     document.getElementById('statTotal').textContent = formatTime(total);
     document.getElementById('statRemaining').textContent = formatTime(total);
     
-    // Update Estimated Time in Setup View
     if (sequence.length === 0) {
       document.getElementById('setupEstTime').textContent = "Total Est. Time: 0:00";
+      document.getElementById('currentName').textContent = "Select areas to begin";
+      document.getElementById('currentDesc').textContent = "Go to Setup to build your routine.";
+      document.getElementById('currentTime').textContent = "00:00";
     } else {
       document.getElementById('setupEstTime').textContent = `Total Est. Time: ${formatTime(total)}`;
     }
     
-    // Enable/disable start button based on selection
     document.getElementById('startBtn').disabled = sequence.length === 0;
-
-    // Reset UI if no sequence
-    if (sequence.length === 0) {
-      document.getElementById('currentName').textContent = "Select areas to begin";
-      document.getElementById('currentDesc').textContent = "Go to Setup to build your routine.";
-      document.getElementById('currentTime').textContent = "00:00";
-    }
 
     renderPlanned();
     updateNextIndicator();
@@ -514,15 +575,33 @@
   }
 
   function updateNextIndicator() {
-    const nextIdx = currentIndex === -1 ? 0 : currentIndex + 1;
     const box = document.getElementById('upcomingBox');
     
     if (sequence.length === 0) {
       box.textContent = "Up Next: --";
-    } else if (nextIdx < sequence.length) {
-      box.textContent = `Up Next: ${sequence[nextIdx].name} (${formatTime(sequence[nextIdx].dur)})`;
+      return;
+    }
+
+    let nextExercises = [];
+    let startIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+    
+    for (let i = startIndex; i < sequence.length; i++) {
+      let item = sequence[i];
+      if (!item.isRest) {
+        nextExercises.push(`<b>${item.name}</b> <span style="opacity:0.8; font-size:0.9em;">(${formatTime(item.dur)})</span>`);
+        if (nextExercises.length >= 2) break;
+      }
+    }
+    
+    if (nextExercises.length === 0) {
+      box.innerHTML = "Up Next: Workout Complete!";
+    } else if (nextExercises.length === 1) {
+      box.innerHTML = `<div style="color:var(--accent); margin-bottom:5px;">Up Next:</div>
+                       <div style="color:var(--text);">${nextExercises[0]}</div>`;
     } else {
-      box.textContent = "Up Next: Workout Complete!";
+      box.innerHTML = `<div style="color:var(--accent); margin-bottom:5px;">Up Next:</div>
+                       <div style="color:var(--text); margin-bottom:4px;">${nextExercises[0]}</div>
+                       <div style="color:var(--text); font-size:0.85em; opacity:0.7;">Then: ${nextExercises[1]}</div>`;
     }
   }
 
@@ -554,7 +633,6 @@
     const isPrep = currentIndex === -1;
     const currentItem = isPrep ? null : sequence[currentIndex];
     
-    // Manage dynamic color classes
     const panel = document.getElementById('timerPanel');
     panel.classList.remove('is-preparing', 'is-resting');
     
@@ -564,19 +642,16 @@
         panel.classList.add('is-resting');
     }
 
-    // Update textual data
     document.getElementById('currentName').textContent = isPrep ? "GET READY" : currentItem.name;
     document.getElementById('currentDesc').textContent = isPrep ? "Find a clear space and get comfortable before the timer starts." : currentItem.desc;
     document.getElementById('currentTime').textContent = formatTime(timeLeft);
     
-    // Dynamic Stats
     const totalDuration = sequence.reduce((acc, curr) => acc + curr.dur, 0) + 10;
     const remaining = totalDuration - elapsedTotal;
     
     document.getElementById('statElapsed').textContent = formatTime(elapsedTotal);
     document.getElementById('statRemaining').textContent = formatTime(Math.max(0, remaining));
 
-    // Progress Bar
     const stepTotal = isPrep ? 10 : currentItem.dur;
     const progress = ((stepTotal - timeLeft) / stepTotal) * 100;
     document.getElementById('progressBar').style.width = `${progress}%`;
@@ -592,8 +667,6 @@
     }
     
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    
-    // Auto-switch to workout tab
     switchTab('workout');
     
     currentIndex = -1;
@@ -649,6 +722,44 @@
     isPaused = !isPaused;
     document.getElementById('pauseBtn').textContent = isPaused ? "Resume" : "Pause";
   };
+
+  // --- ACCIDENTAL LEAVE PROTECTION ---
+  window.addEventListener('beforeunload', function (e) {
+    if (sequence.length > 0 && timer) { 
+      e.preventDefault();
+      e.returnValue = ''; 
+    }
+  });
+
+  history.pushState({ page: 1 }, document.title, location.href);
+
+  window.addEventListener('popstate', function (e) {
+    if (sequence.length > 0 && timer) {
+      let wasRunning = false;
+      if (!isPaused) {
+        wasRunning = true;
+        isPaused = true;
+        document.getElementById('pauseBtn').textContent = "Resume";
+      }
+
+      const confirmLeave = confirm("You have an active session. Are you sure you want to leave and lose your progress?");
+      
+      if (confirmLeave) {
+        sequence = []; 
+        clearInterval(timer);
+        history.back(); 
+      } else {
+        history.pushState({ page: 1 }, document.title, location.href);
+        if (wasRunning) {
+          isPaused = false;
+          document.getElementById('pauseBtn').textContent = "Pause";
+        }
+      }
+    } else {
+      history.back();
+    }
+  });
+
 </script>
 </body>
 </html>
