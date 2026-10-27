@@ -95,6 +95,11 @@
     input[type=range] { width: 120px; accent-color: var(--accent); cursor: pointer; transition: 0.2s; }
     input[type=range]:disabled { opacity: 0.3; cursor: not-allowed; }
 
+    /* Screen Wake Lock status */
+    .wake-status { font-size: 0.8rem; color: var(--muted); margin-top: 12px; min-height: 1.2em; }
+    .wake-status.on { color: var(--success); }
+    .wake-status.warn { color: var(--prep); }
+
     .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .controls button { padding: 18px 10px; border-radius: 10px; border: none; font-weight: 700; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
     .controls button:active { transform: scale(0.98); }
@@ -213,6 +218,8 @@
         <button id="skipBtn" class="btn-secondary" disabled>Skip</button>
         <button id="stopBtn" class="btn-secondary" disabled>Reset</button>
       </div>
+
+      <div class="wake-status" id="wakeStatus"></div>
     </div>
     
   </div>
@@ -304,6 +311,47 @@
   let timer = null;
   let isPaused = false;
   let isSkipCooldown = false;
+
+  // --- Screen Wake Lock (keeps the screen on during a session) ---
+  let wakeLock = null;
+
+  function setWakeStatus(text, cls) {
+    const el = document.getElementById('wakeStatus');
+    el.textContent = text;
+    el.className = 'wake-status' + (cls ? ' ' + cls : '');
+  }
+
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) {
+      setWakeStatus('Screen may turn off: Wake Lock not supported (needs HTTPS and a modern browser).', 'warn');
+      return;
+    }
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+      setWakeStatus('Screen will stay awake during the workout.', 'on');
+    } catch (err) {
+      wakeLock = null;
+      setWakeStatus('Screen may turn off: Wake Lock was blocked (check Battery Saver).', 'warn');
+      console.warn('Wake lock failed:', err);
+    }
+  }
+
+  async function releaseWakeLock() {
+    if (wakeLock) {
+      try { await wakeLock.release(); } catch (e) {}
+      wakeLock = null;
+    }
+    setWakeStatus('', '');
+  }
+
+  // The browser drops the lock when the tab is hidden or the phone is locked;
+  // re-acquire it when the user comes back while a session is running.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && timer && !wakeLock) {
+      requestWakeLock();
+    }
+  });
 
   function formatTime(s) {
     const m = Math.floor(s / 60);
@@ -643,6 +691,9 @@
        return alert("Please load a valid JSON workout first!");
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    // Keep the screen awake for the whole session (called from a tap, so it's allowed)
+    requestWakeLock();
     
     currentIndex = 0; 
     timeLeft = sequence[0].dur;
@@ -681,6 +732,10 @@
   function reset() {
     clearInterval(timer);
     timer = null;
+
+    // Let the screen sleep normally again
+    releaseWakeLock();
+
     currentIndex = -1;
     elapsedTotal = 0;
     currentStepElapsed = 0;
@@ -745,6 +800,7 @@
       if (confirmLeave) {
         sequence = []; 
         clearInterval(timer);
+        releaseWakeLock();
         history.back(); 
       } else {
         history.pushState({ page: 1 }, document.title, location.href);
